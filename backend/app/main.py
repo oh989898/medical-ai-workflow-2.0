@@ -52,16 +52,6 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def root():
-    """根路径"""
-    return {
-        "message": "Medical AI Workflow API",
-        "version": "1.0.0",
-        "status": "running"
-    }
-
-
 @app.get("/health")
 async def health_check():
     """健康检查"""
