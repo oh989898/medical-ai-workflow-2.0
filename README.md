@@ -1,3 +1,13 @@
+---
+title: Medical Ai Workflow 2.0
+emoji: 🔬
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # Medical AI Workflow - 医学AI可视化工作流平台
 
 面向医学科研人员的"低代码/无代码"可视化AI工作流搭建平台。
