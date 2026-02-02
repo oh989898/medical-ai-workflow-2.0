@@ -25,8 +25,8 @@ COPY backend/ ./backend/
 # Copy built frontend from Stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Expose port
-EXPOSE 8000
+# Expose port (Hugging Face Spaces uses 7860)
+EXPOSE 7860
 
 # Run the application
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "7860"]
