@@ -6,8 +6,6 @@ import type {
   XYPosition
 } from '@xyflow/react';
 import type {
-  NodeDefinition,
-  NodeInstance,
   Workflow,
   CodeGenerationResult
 } from '@/types/nodes';
@@ -148,7 +146,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
               data: {
                 ...node.data,
                 parameters: {
-                  ...node.data.parameters,
+                  ...(node.data.parameters as Record<string, unknown>),
                   [paramId]: value
                 }
               }
@@ -233,10 +231,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       description: '',
       nodes: nodes.map(n => ({
         id: n.id,
-        type: n.data.definition.id,
+        type: (n.data as any).definition?.id || 'unknown',
         position: n.position,
         data: {
-          parameters: n.data.parameters,
+          parameters: (n.data as any).parameters || {},
           inputs: get().getNodeInputs(n.id)
         }
       })),

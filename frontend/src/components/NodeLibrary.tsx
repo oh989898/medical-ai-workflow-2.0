@@ -3,7 +3,7 @@ import { Search, ChevronDown, ChevronRight, HelpCircle, Lightbulb, Info } from '
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { NodeDefinition, NodeCategory } from '@/types/nodes';
-import { getAllNodeDefinitions, getNodesByCategory, searchNodes, categoryLabels, categoryColors } from '@/nodes/registry';
+import { getNodesByCategory, searchNodes, categoryLabels, categoryColors } from '@/nodes/registry';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -151,7 +151,6 @@ function DraggableNodeItem({ node }: { node: NodeDefinition }) {
 function CategoryHelp({ category }: { category: NodeCategory }) {
   const [isOpen, setIsOpen] = useState(false);
   const desc = categoryDescriptions[category];
-  const color = categoryColors[category];
 
   return (
     <div className="mt-3 mb-4">
@@ -227,7 +226,7 @@ function CategorySection({
             className="w-3 h-3 rounded-full ring-2 ring-offset-2" 
             style={{ 
               backgroundColor: color,
-              ringColor: `${color}40`
+              boxShadow: `0 0 0 2px ${color}40`
             }}
           />
           <span className="font-semibold text-sm text-gray-800 tracking-tight">{label}</span>

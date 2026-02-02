@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { 
   BookOpen, X, ChevronRight, HelpCircle, 
-  Play, Layers, GitMerge, Settings, Eye,
-  Folder, Maximize, Microscope, Table,
-  AlertCircle, CheckCircle2, Lightbulb
+  Play, Layers,
+  Folder, Lightbulb
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';

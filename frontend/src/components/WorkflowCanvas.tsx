@@ -8,9 +8,7 @@ import {
   useEdgesState,
   addEdge,
   type Connection,
-  type Edge,
   type Node,
-  type XYPosition,
   Panel,
   useReactFlow,
   ReactFlowProvider,
@@ -24,7 +22,6 @@ import { twMerge } from 'tailwind-merge';
 import { nodeTypes } from '@/nodes';
 import { useWorkflowStore } from '@/stores/workflowStore';
 import { isTypeCompatible } from '@/types/nodes';
-import { getNodeDefinition } from '@/nodes/registry';
 import type { CodeGenerationResult, NodeDefinition, InputPort, OutputPort } from '@/types/nodes';
 
 function cn(...inputs: ClassValue[]) {
@@ -160,7 +157,6 @@ function CanvasContent() {
   const { screenToFlowPosition } = useReactFlow();
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<CodeGenerationResult | null>(null);
-  const [draggedNodeType, setDraggedNodeType] = useState<string | null>(null);
   
   const {
     nodes,
@@ -306,13 +302,6 @@ function CanvasContent() {
     });
   }, [onEdgesChange, removeEdge]);
 
-  // 拖拽开始
-  const onDragStart = (event: React.DragEvent, nodeType: string) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.effectAllowed = 'move';
-    setDraggedNodeType(nodeType);
-  };
-
   // 拖拽经过
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -336,7 +325,6 @@ function CanvasContent() {
       });
 
       addNode(type, position);
-      setDraggedNodeType(null);
     },
     [screenToFlowPosition, addNode]
   );
