@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NodeLibrary, PropertiesPanel, WorkflowCanvas, HelpSystem, HelpButton } from '@/components';
-import { Github, BookOpen } from 'lucide-react';
+import { NodeLibrary, PropertiesPanel, WorkflowCanvas, HelpSystem } from '@/components';
+import { Github, BookOpen, Stethoscope } from 'lucide-react';
 
 function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -10,25 +10,8 @@ function App() {
       {/* 顶部导航栏 - Apple 风格玻璃态 */}
       <header className="h-16 glass-nav flex items-center justify-between px-6 shrink-0 z-10">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-            <img 
-              src="/jlu-logo.png" 
-              alt="吉林大学" 
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // 如果图片加载失败，显示备用图标
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.classList.add('bg-gradient-to-br', 'from-blue-500', 'to-purple-600');
-                  const icon = document.createElement('span');
-                  icon.innerHTML = '🏛️';
-                  icon.className = 'text-xl';
-                  parent.appendChild(icon);
-                }
-              }}
-            />
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+            <Stethoscope className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="font-semibold text-gray-900 text-lg tracking-tight">Medical AI Workflow</h1>
