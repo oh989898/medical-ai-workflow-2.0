@@ -3,7 +3,7 @@ Medical AI Workflow - FastAPI后端服务
 """
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -18,6 +18,10 @@ from .code_generator import generate_code
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# 确定静态文件路径
+static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../frontend/dist")
 
 
 # 创建FastAPI应用
@@ -178,9 +182,24 @@ async def global_exception_handler(request, exc):
 
 
 # 挂载前端静态文件 (用于部署)
-static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../frontend/dist")
 if os.path.exists(static_path):
-    app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+    # 挂载静态资源目录 (assets, etc.)
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_path, "assets")), name="static")
+    
+    # 根路由和 SPA 回退路由
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str = ""):
+        # 如果是 API 请求，由上面的 API 路由处理，不会到达这里
+        # 如果请求的文件存在，则返回该文件
+        file_path = os.path.join(static_path, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # 否则返回 index.html (SPA 回退)
+        return FileResponse(os.path.join(static_path, "index.html"))
+else:
+    @app.get("/")
+    async def root():
+        return {"message": "Backend is running, but frontend build not found.", "path": static_path}
 
 
 # 启动入口
