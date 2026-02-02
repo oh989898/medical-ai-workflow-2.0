@@ -313,7 +313,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
           statusText: response.statusText,
           error: errorData
         });
-        throw new Error(errorData.message || `代码生成失败: ${response.status}`);
+        const errorMessage = errorData.detail?.message || errorData.message || `代码生成失败: ${response.status}`;
+        throw new Error(errorMessage);
       }
       
       return await response.json();

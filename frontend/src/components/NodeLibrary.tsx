@@ -88,6 +88,7 @@ const categoryDescriptions: Record<NodeCategory, {
 // 可拖拽节点项 - Apple 风格
 function DraggableNodeItem({ node }: { node: NodeDefinition }) {
   const color = categoryColors[node.type];
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const onDragStart = (event: React.DragEvent) => {
     event.dataTransfer.setData('application/reactflow', node.id);
@@ -95,30 +96,51 @@ function DraggableNodeItem({ node }: { node: NodeDefinition }) {
   };
 
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      className={cn(
-        'p-4 mb-3 rounded-2xl border cursor-move transition-all duration-300',
-        'bg-white/80 hover:bg-white',
-        'shadow-sm hover:shadow-lg',
-        'border-gray-100 hover:border-blue-200'
-      )}
-      style={{ borderLeftWidth: '4px', borderLeftColor: color }}
-      title={node.tooltip || node.description}
-    >
-      <div className="font-semibold text-sm text-gray-900 tracking-tight">{node.name}</div>
-      <div className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{node.description}</div>
-      {node.tags && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {node.tags.slice(0, 3).map(tag => (
-            <span 
-              key={tag} 
-              className="text-xs px-2.5 py-1 bg-gray-100/80 rounded-full text-gray-600 font-medium"
-            >
-              {tag}
+    <div className="relative">
+      <div
+        draggable
+        onDragStart={onDragStart}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className={cn(
+          'p-4 mb-3 rounded-2xl border cursor-move transition-all duration-300',
+          'bg-white/80 hover:bg-white',
+          'shadow-sm hover:shadow-lg',
+          'border-gray-100 hover:border-blue-200'
+        )}
+        style={{ borderLeftWidth: '4px', borderLeftColor: color }}
+      >
+        <div className="font-semibold text-sm text-gray-900 tracking-tight">{node.name}</div>
+        <div className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{node.description}</div>
+        {node.tags && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {node.tags.slice(0, 3).map(tag => (
+              <span 
+                key={tag} 
+                className="text-xs px-2.5 py-1 bg-gray-100/80 rounded-full text-gray-600 font-medium"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 自定义 Apple 风格 Tooltip */}
+      {showTooltip && (
+        <div className="absolute left-full top-0 ml-3 z-[100] w-64 p-4 
+                        bg-white/95 backdrop-blur-xl border border-gray-200/50 
+                        rounded-2xl shadow-2xl shadow-black/10 animate-in pointer-events-none">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              {categoryLabels[node.type]}
             </span>
-          ))}
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed font-medium">
+            {node.tooltip || node.description}
+          </p>
+          <div className="absolute right-full top-6 border-[6px] border-transparent border-r-white/95" />
         </div>
       )}
     </div>

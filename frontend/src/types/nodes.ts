@@ -4,6 +4,7 @@ export type NodeCategory = 'input' | 'transform' | 'encoder' | 'fusion' | 'head'
 // 数据类型定义 - 用于类型检查
 export type DataType = 
   | 'image'           // 图像 [B, C, H, W]
+  | 'mask'            // 分割掩码 [B, 1, H, W]
   | 'tensor'          // 通用张量
   | 'embedding'       // 嵌入向量 [B, D] 或 [N, D]
   | 'text'            // 文本
@@ -120,6 +121,7 @@ export function isTypeCompatible(sourceType: DataType, targetType: DataType): bo
   if (targetType === 'any') return true;
   if (sourceType === 'embedding' && targetType === 'tensor') return true;
   if (sourceType === 'features' && targetType === 'tensor') return true;
+  if (sourceType === 'mask' && targetType === 'image') return true; // Mask can sometimes be treated as 1-channel image
   return false;
 }
 

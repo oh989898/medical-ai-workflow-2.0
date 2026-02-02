@@ -36,7 +36,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         name: 'Images',
         type: 'image',
         shape: { batch: null, channels: 3, height: null, width: null },
-        description: '图像批次 [B, 3, H, W]'
+        description: '🖼️ 原始图像流 [B, 3, H, W]。\n💡 建议：连接至“预处理”节点进行缩放，或直接连至“特征编码”节点。'
       }
     ],
     parameters: [
@@ -57,7 +57,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
     ],
     codeTemplate: 'image_folder',
     tags: ['input', 'image'],
-    tooltip: '从指定文件夹加载图像数据集'
+    tooltip: '加载图像数据集。要求：数据应按类别存放于子文件夹中，例如 dataset/class_a/*.jpg'
   },
 
   'pathology_wsi': {
@@ -73,13 +73,13 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         name: 'Patches',
         type: 'image',
         shape: { batch: null, channels: 3, height: 224, width: 224 },
-        description: '图像块 [N, 3, 224, 224]'
+        description: '🖼️ 从大图切出的图像块流 [N, 3, 224, 224]。\n💡 建议：连接至 TITAN、UNI 或 ResNet 编码器。'
       },
       {
         id: 'coordinates',
         name: 'Coordinates',
         type: 'tensor',
-        description: ' patches坐标'
+        description: '📍 Patch 坐标 (x, y)。\n记录了每个图像块在原始大图中的位置。\n💡 建议：用于热力图生成或结果可视化。'
       }
     ],
     parameters: [
@@ -87,7 +87,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'wsi_path',
         name: 'WSI路径',
         type: 'path',
-        description: '全切片图像路径(.svs, .ndpi等)',
+        description: '包含所有WSI文件的文件夹路径',
         required: true
       },
       {
@@ -116,7 +116,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
     ],
     codeTemplate: 'pathology_wsi',
     tags: ['input', 'pathology', 'wsi'],
-    tooltip: '加载病理全切片图像并进行切块处理'
+    tooltip: '加载WSI病理大图。要求：提供包含.svs/.ndpi文件的目录路径'
   },
 
   'clinical_csv': {
@@ -132,13 +132,13 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         name: 'Features',
         type: 'embedding',
         shape: { batch: null, dim: null },
-        description: '临床特征 [B, D]'
+        description: '📊 结构化特征向量。\n从 CSV 表格中提取的数值指标。\n💡 建议：连接至“特征融合”节点（如 Gated Fusion）。'
       },
       {
         id: 'labels',
         name: 'Labels',
         type: 'label',
-        description: '标签数据'
+        description: '🎯 标签数据。\n用于训练目标的金标准。\n💡 建议：连接至“下游任务”节点的 Label/GT 端口。'
       }
     ],
     parameters: [
@@ -146,25 +146,114 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'csv_path',
         name: 'CSV路径',
         type: 'path',
-        description: 'CSV文件路径',
+        description: 'CSV文件绝对路径',
         required: true
       },
       {
         id: 'feature_columns',
         name: '特征列',
         type: 'list',
-        description: '作为特征的列名'
+        description: '作为输入特征的列名列表'
       },
       {
         id: 'label_column',
         name: '标签列',
         type: 'string',
-        description: '标签列名',
+        description: '用于训练目标的标签列名',
         defaultValue: 'label'
       }
     ],
     codeTemplate: 'clinical_csv',
-    tags: ['input', 'clinical', 'tabular']
+    tags: ['input', 'clinical', 'tabular'],
+    tooltip: '加载临床指标。要求：CSV文件，建议使用UTF-8编码，表头使用英文'
+  },
+
+  'medical_report': {
+    id: 'medical_report',
+    type: 'input',
+    name: 'Medical Report',
+    description: '加载医学诊断报告 (纯文本)',
+    icon: 'FileText',
+    inputs: [],
+    outputs: [
+      {
+        id: 'text',
+        name: 'Text',
+        type: 'text',
+        description: '📜 原始诊断报告文本流。\n💡 建议：必须连接至 BERT 或 CLIP 编码器。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'csv_path',
+        name: 'CSV路径',
+        type: 'path',
+        description: '包含报告文本的 CSV 文件路径',
+        required: true
+      },
+      {
+        id: 'text_column',
+        name: '报告列名',
+        type: 'string',
+        defaultValue: 'report',
+        description: '存放诊断报告文本的列名'
+      },
+      {
+        id: 'language',
+        name: '语言',
+        type: 'select',
+        options: [
+          { label: '中文', value: 'zh' },
+          { label: '英文', value: 'en' }
+        ],
+        defaultValue: 'zh'
+      }
+    ],
+    codeTemplate: 'medical_report',
+    tags: ['input', 'text', 'nlp'],
+    tooltip: '加载非结构化的医生诊断报告文本。'
+  },
+
+  'segmentation_dataset': {
+    id: 'segmentation_dataset',
+    type: 'input',
+    name: 'Segmentation Dataset',
+    description: '加载图像分割数据集',
+    icon: 'LayoutGrid',
+    inputs: [],
+    outputs: [
+      {
+        id: 'images',
+        name: 'Images',
+        type: 'image',
+        description: '🖼️ 训练原图流 [B, 3, H, W]。\n💡 建议：连接至编码器（如 ResNet）的 Input。'
+      },
+      {
+        id: 'masks',
+        name: 'Masks',
+        type: 'mask',
+        description: '🎭 分割掩码 (Label) [B, 1, H, W]。\n💡 建议：直接连接至“分割头 (Segmentation Head)”的 Ground Truth 端口。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'images_path',
+        name: '图像文件夹',
+        type: 'path',
+        description: '包含原始训练图片的路径',
+        required: true
+      },
+      {
+        id: 'masks_path',
+        name: '掩码文件夹',
+        type: 'path',
+        description: '包含对应分割标签(Mask)的路径',
+        required: true
+      }
+    ],
+    codeTemplate: 'segmentation_dataset',
+    tags: ['input', 'segmentation'],
+    tooltip: '加载分割数据。要求：两个文件夹内的文件名需一一对应。'
   },
 
   // ==================== Transform Nodes ====================
@@ -179,7 +268,8 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 待处理的原始图像。'
       }
     ],
     outputs: [
@@ -188,7 +278,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         name: 'Output',
         type: 'image',
         shape: { batch: null, channels: 3, height: 224, width: 224 },
-        description: '调整后的图像'
+        description: '🖼️ 调整尺寸后的图像。'
       }
     ],
     parameters: [
@@ -231,7 +321,8 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 待处理图像。'
       }
     ],
     outputs: [
@@ -239,7 +330,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'output',
         name: 'Output',
         type: 'image',
-        description: '归一化后的图像'
+        description: '🖼️ 归一化后的图像（各通道符合 0-1 或指定分布）。'
       }
     ],
     parameters: [
@@ -273,7 +364,8 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🔬 原始病理图像（通常包含 H&E 染色）。'
       }
     ],
     outputs: [
@@ -281,7 +373,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'output',
         name: 'Output',
         type: 'image',
-        description: '染色归一化后的图像'
+        description: '🔬 染色风格统一后的图像。'
       }
     ],
     parameters: [
@@ -320,7 +412,8 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 原始图像。'
       }
     ],
     outputs: [
@@ -328,7 +421,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'output',
         name: 'Output',
         type: 'image',
-        description: '增强后的图像'
+        description: '🎲 经过随机变换（旋转、翻转等）后的图像。'
       }
     ],
     parameters: [
@@ -372,16 +465,23 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 图像输入。请连接“数据输入”或“预处理”节点的图像输出。'
       }
     ],
     outputs: [
       {
         id: 'features',
-        name: 'Features',
+        name: 'Global Features',
         type: 'embedding',
         shape: { batch: null, dim: 2048 },
-        description: '特征向量 [B, 2048]'
+        description: '📝 全局特征向量 (Embedding)。\n这是对整张图的“总结”，丢失了位置信息。\n💡 建议：连接至“分类头”或“生存分析头”。'
+      },
+      {
+        id: 'feature_map',
+        name: 'Spatial Feature Map',
+        type: 'features',
+        description: '🗺️ 空间特征图 (Spatial Map)。\n保留了物体在图中的位置信息。\n💡 建议：仅用于“分割头(Segmentation Head)”。'
       }
     ],
     parameters: [
@@ -417,16 +517,23 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 图像输入。'
       }
     ],
     outputs: [
       {
         id: 'features',
-        name: 'Features',
+        name: 'Global Features',
         type: 'embedding',
         shape: { batch: null, dim: 768 },
-        description: '特征向量 [B, 768]'
+        description: '📝 全局特征向量 (CLS Token)。\n💡 建议：连接至“分类头”或“生存分析头”。'
+      },
+      {
+        id: 'feature_map',
+        name: 'Spatial Feature Map',
+        type: 'features',
+        description: '🗺️ 空间特征图 (Patch Embeddings)。\n💡 建议：仅用于“分割头”。'
       }
     ],
     parameters: [
@@ -456,6 +563,145 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
     tooltip: 'Vision Transformer，基于自注意力的视觉模型'
   },
 
+  'swin': {
+    id: 'swin',
+    type: 'encoder',
+    name: 'Swin Transformer',
+    description: '层次化视觉Transformer (非常适合医学图像)',
+    icon: 'Trello',
+    inputs: [
+      {
+        id: 'input',
+        name: 'Input',
+        type: 'image',
+        required: true,
+        description: '🖼️ 图像输入。'
+      }
+    ],
+    outputs: [
+      {
+        id: 'features',
+        name: 'Global Features',
+        type: 'embedding',
+        shape: { batch: null, dim: 1024 },
+        description: '📝 全局特征向量。\n💡 建议：连接至“分类头”。'
+      },
+      {
+        id: 'feature_map',
+        name: 'Spatial Feature Map',
+        type: 'features',
+        description: '🗺️ 层次化特征图。非常适合高精度的医学影像分割任务。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'variant',
+        name: '模型变体',
+        type: 'select',
+        options: [
+          { label: 'Swin-Tiny', value: 'tiny' },
+          { label: 'Swin-Small', value: 'small' },
+          { label: 'Swin-Base', value: 'base' }
+        ],
+        defaultValue: 'base'
+      },
+      {
+        id: 'pretrained',
+        name: '预训练',
+        type: 'boolean',
+        defaultValue: true
+      }
+    ],
+    codeTemplate: 'swin',
+    tags: ['encoder', 'transformer', 'medical-favorite'],
+    tooltip: 'Swin Transformer 通过移动窗口实现层次化特征提取，是目前医学影像分割和分类的顶流模型。'
+  },
+
+  'efficientnet': {
+    id: 'efficientnet',
+    type: 'encoder',
+    name: 'EfficientNet V2',
+    description: '兼顾精度与速度的卷积神经网络',
+    icon: 'Zap',
+    inputs: [
+      {
+        id: 'input',
+        name: 'Input',
+        type: 'image',
+        required: true,
+        description: '🖼️ 图像输入。'
+      }
+    ],
+    outputs: [
+      {
+        id: 'features',
+        name: 'Global Features',
+        type: 'embedding',
+        description: '📝 全局特征向量。\n💡 建议：连接至“分类头”。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'model_type',
+        name: '模型规模',
+        type: 'select',
+        options: [
+          { label: 'EfficientNet-S', value: 's' },
+          { label: 'EfficientNet-M', value: 'm' },
+          { label: 'EfficientNet-L', value: 'l' }
+        ],
+        defaultValue: 's'
+      },
+      {
+        id: 'pretrained',
+        name: '预训练',
+        type: 'boolean',
+        defaultValue: true
+      }
+    ],
+    codeTemplate: 'efficientnet',
+    tags: ['encoder', 'cnn', 'efficient'],
+    tooltip: 'EfficientNet V2 是卷积神经网络的集大成者，在保证精度的同时显著减少了显存占用。'
+  },
+
+  'uni': {
+    id: 'uni',
+    type: 'encoder',
+    name: 'UNI (Pathology)',
+    description: '哈佛大学开发的超强病理基础模型',
+    icon: 'Crown',
+    inputs: [
+      {
+        id: 'input',
+        name: 'Input',
+        type: 'image',
+        required: true,
+        description: '🖼️ 图像块输入（通常为 224x224）。'
+      }
+    ],
+    outputs: [
+      {
+        id: 'features',
+        name: 'Global Features',
+        type: 'embedding',
+        shape: { batch: null, dim: 1024 },
+        description: '🧬 1024维病理表征向量。\n💡 建议：连接至“分类头”或“特征融合”。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'model_path',
+        name: '模型路径',
+        type: 'path',
+        description: 'UNI模型权重路径',
+        required: true
+      }
+    ],
+    codeTemplate: 'uni',
+    tags: ['encoder', 'foundation', 'pathology', 'hot'],
+    tooltip: 'UNI 是目前病理学领域表现最好的基础模型之一，经过海量病理切片预训练。'
+  },
+
   'titan': {
     id: 'titan',
     type: 'encoder',
@@ -467,16 +713,17 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 图像块输入。'
       }
     ],
     outputs: [
       {
         id: 'features',
-        name: 'Features',
+        name: 'Global Features',
         type: 'embedding',
         shape: { batch: null, dim: 768 },
-        description: '特征向量 [B, 768]'
+        description: '📝 768维病理特征向量。\n💡 建议：连接至“分类头”或“特征融合”。'
       }
     ],
     parameters: [
@@ -511,16 +758,17 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'image',
-        required: true
+        required: true,
+        description: '🖼️ 图像输入。'
       }
     ],
     outputs: [
       {
         id: 'features',
-        name: 'Features',
+        name: 'Global Features',
         type: 'embedding',
         shape: { batch: null, dim: 512 },
-        description: '特征向量 [B, 512]'
+        description: '📝 512维对齐特征向量。\n💡 建议：适用于图文对齐或病理分类。'
       }
     ],
     parameters: [
@@ -548,16 +796,17 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input',
         name: 'Input',
         type: 'text',
-        required: true
+        required: true,
+        description: '📜 文本输入。请连接“医学报告”节点的输出。'
       }
     ],
     outputs: [
       {
         id: 'features',
-        name: 'Features',
+        name: 'Global Features',
         type: 'embedding',
         shape: { batch: null, dim: 768 },
-        description: '文本嵌入 [B, 768]'
+        description: '📝 文本嵌入向量 (Embedding)。\n将诊断报告转化为高维语义特征。\n💡 建议：连接至“特征融合”或“分类头”。'
       }
     ],
     parameters: [
@@ -590,6 +839,65 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
     tooltip: 'BERT文本编码器，支持BioBERT医学版本'
   },
 
+  'clip': {
+    id: 'clip',
+    type: 'encoder',
+    name: 'CLIP (OpenAI)',
+    description: '对比语言-图像预训练模型 (图文对齐神器)',
+    icon: 'ImagePlus',
+    inputs: [
+      {
+        id: 'image',
+        name: 'Image Input',
+        type: 'image',
+        required: true,
+        description: '🖼️ 图像数据输入。\n💡 建议：连接“数据输入”或“预处理”节点的图像输出。'
+      },
+      {
+        id: 'text',
+        name: 'Text Input',
+        type: 'text',
+        required: true,
+        description: '📜 医学报告文本输入。\n💡 建议：连接“医学报告 (Medical Report)”节点。'
+      }
+    ],
+    outputs: [
+      {
+        id: 'image_features',
+        name: 'Visual Feats',
+        type: 'embedding',
+        description: '📝 对齐后的视觉特征向量。\n💡 建议：连接至“特征融合”节点。'
+      },
+      {
+        id: 'text_features',
+        name: 'Textual Feats',
+        type: 'embedding',
+        description: '📝 对齐后的文本特征向量。\n💡 建议：连接至“特征融合”节点。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'model_variant',
+        name: '模型规模',
+        type: 'select',
+        options: [
+          { label: 'CLIP-ViT-B/32', value: 'openai/clip-vit-base-patch32' },
+          { label: 'CLIP-ViT-L/14', value: 'openai/clip-vit-large-patch14' }
+        ],
+        defaultValue: 'openai/clip-vit-base-patch32'
+      },
+      {
+        id: 'freeze',
+        name: '冻结权重',
+        type: 'boolean',
+        defaultValue: true
+      }
+    ],
+    codeTemplate: 'clip',
+    tags: ['encoder', 'multimodal', 'foundation', 'hot'],
+    tooltip: 'CLIP 通过对比学习将图像和文本映射到同一个特征空间，是目前图文理解最强的基础模型。'
+  },
+
   // ==================== Fusion Nodes ====================
   'concat': {
     id: 'concat',
@@ -602,13 +910,15 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'input1',
         name: 'Input 1',
         type: 'embedding',
-        required: true
+        required: true,
+        description: '📝 第一个特征流（如图像特征）。'
       },
       {
         id: 'input2',
         name: 'Input 2',
         type: 'embedding',
-        required: true
+        required: true,
+        description: '📊 第二个特征流（如临床特征）。'
       }
     ],
     outputs: [
@@ -616,7 +926,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'output',
         name: 'Output',
         type: 'embedding',
-        description: '拼接后的特征'
+        description: '📝 拼接后的长特征向量。\n💡 建议：连接至分类头。'
       }
     ],
     parameters: [
@@ -645,13 +955,15 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'query',
         name: 'Query',
         type: 'embedding',
-        required: true
+        required: true,
+        description: '📝 作为查询(Query)的模态（通常为主模态，如图像特征）。'
       },
       {
         id: 'key_value',
         name: 'Key/Value',
         type: 'embedding',
-        required: true
+        required: true,
+        description: '📝 作为键值(Key/Value)的模态（通常为辅助模态，如文本特征）。'
       }
     ],
     outputs: [
@@ -659,7 +971,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'output',
         name: 'Output',
         type: 'embedding',
-        description: '融合后的特征'
+        description: '📝 经过交叉注意力对齐后的融合特征。\n💡 建议：连接至分类头。'
       }
     ],
     parameters: [
@@ -685,7 +997,54 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
     ],
     codeTemplate: 'cross_attention',
     tags: ['fusion', 'attention'],
-    tooltip: '使用交叉注意力机制融合两种模态的特征'
+    tooltip: '使用交叉注意力机制融合两种模态的特征。适用于图像与文本的对齐。'
+  },
+
+  'gated_fusion': {
+    id: 'gated_fusion',
+    type: 'fusion',
+    name: 'Gated Fusion',
+    description: '门控融合 (自动学习模态权重)',
+    icon: 'Lock',
+    inputs: [
+      {
+        id: 'input1',
+        name: 'Modal 1',
+        type: 'embedding',
+        required: true,
+        description: '📝 第一个模态的特征向量。\n💡 建议：通常连接图像特征。'
+      },
+      {
+        id: 'input2',
+        name: 'Modal 2',
+        type: 'embedding',
+        required: true,
+        description: '📝 第二个模态的特征向量。\n💡 建议：通常连接文本或临床特征。'
+      }
+    ],
+    outputs: [
+      {
+        id: 'output',
+        name: 'Output',
+        type: 'embedding',
+        description: '📝 通过门控权重加权后的融合特征。\n系统会自动决定两个模态的贡献比例。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'gate_type',
+        name: '门控类型',
+        type: 'select',
+        options: [
+          { label: 'Sigmoid Gate', value: 'sigmoid' },
+          { label: 'Softmax Weighted', value: 'softmax' }
+        ],
+        defaultValue: 'sigmoid'
+      }
+    ],
+    codeTemplate: 'gated_fusion',
+    tags: ['fusion', 'gated', 'multimodal'],
+    tooltip: '门控机制可以自动学习哪个模态更重要。例如，在某些病例中临床数据更重要，而在另一些病例中图像更重要。'
   },
 
   'attention_mil': {
@@ -699,7 +1058,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'patches',
         name: 'Patches',
         type: 'embedding',
-        description: '多个patch的特征 [N, D]',
+        description: '🧩 多个 Patch 的特征集合 [N, D]。\n💡 建议：连接编码器的 Global Features。',
         required: true
       }
     ],
@@ -709,13 +1068,13 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         name: 'Features',
         type: 'embedding',
         shape: { batch: null, dim: 512 },
-        description: '聚合后的特征 [B, 512]'
+        description: '📝 聚合后的整张切片特征 [B, 512]。'
       },
       {
         id: 'attention',
         name: 'Attention',
         type: 'attention',
-        description: '注意力权重 [B, N]'
+        description: '👁️ 注意力权重 [B, N]。\n显示每个 Patch 对诊断的重要性。\n💡 建议：用于生成预测热力图。'
       }
     ],
     parameters: [
@@ -755,7 +1114,8 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'features',
         name: 'Features',
         type: 'embedding',
-        required: true
+        required: true,
+        description: '📝 特征输入。\n💡 建议：连接编码器（如 ResNet）的 [Global Features] 端口。'
       }
     ],
     outputs: [
@@ -815,7 +1175,8 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'features',
         name: 'Features',
         type: 'embedding',
-        required: true
+        required: true,
+        description: '📝 特征输入。\n💡 建议：连接多模态融合后或单模态的全局特征。'
       }
     ],
     outputs: [
@@ -823,7 +1184,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'risk_score',
         name: 'Risk Score',
         type: 'tensor',
-        description: '风险评分'
+        description: '📈 生存风险评分。\n分数越高代表生存风险越大（预后越差）。'
       }
     ],
     parameters: [
@@ -865,7 +1226,15 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'features',
         name: 'Features',
         type: 'features',
-        required: true
+        required: true,
+        description: '🗺️ 特征图输入。\n💡 建议：必须连接编码器的 [Spatial Feature Map] 输出端口。'
+      },
+      {
+        id: 'masks',
+        name: 'Ground Truth',
+        type: 'mask',
+        required: false,
+        description: '🎭 标签输入。\n💡 建议：连接数据集（如 Segmentation Dataset）的 [Masks] 端口。'
       }
     ],
     outputs: [
@@ -903,6 +1272,54 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
     tags: ['head', 'segmentation']
   },
 
+  'sam_segmentor': {
+    id: 'sam_segmentor',
+    type: 'head',
+    name: 'SAM Segmentor',
+    description: 'Segment Anything Model (大模型自动分割)',
+    icon: 'Sparkles',
+    inputs: [
+      {
+        id: 'image',
+        name: 'Image',
+        type: 'image',
+        required: true,
+        description: '连接待分割的原始图像端口。'
+      }
+    ],
+    outputs: [
+      {
+        id: 'masks',
+        name: 'Auto Masks',
+        type: 'mask',
+        description: 'SAM 自动生成的分割掩码。'
+      }
+    ],
+    parameters: [
+      {
+        id: 'model_type',
+        name: '模型规模',
+        type: 'select',
+        options: [
+          { label: 'ViT-H (最高精度)', value: 'vit_h' },
+          { label: 'ViT-L (中等平衡)', value: 'vit_l' },
+          { label: 'ViT-B (速度最快)', value: 'vit_b' }
+        ],
+        defaultValue: 'vit_b'
+      },
+      {
+        id: 'points_per_side',
+        name: '点密度',
+        type: 'number',
+        defaultValue: 32,
+        description: '每边生成的采样点数量。点数越多，分割越细，但速度越慢。'
+      }
+    ],
+    codeTemplate: 'sam_segmentor',
+    tags: ['foundation', 'segmentation', 'zero-shot'],
+    tooltip: '无需标注，利用 Meta SAM 大模型实现全自动“万物皆可割”。'
+  },
+
   // ==================== Config Nodes ====================
   'optimizer': {
     id: 'optimizer',
@@ -916,7 +1333,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'config',
         name: 'Config',
         type: 'any',
-        description: '优化器配置'
+        description: '⚙️ 优化器超参数配置。'
       }
     ],
     parameters: [
@@ -971,7 +1388,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'config',
         name: 'Config',
         type: 'any',
-        description: '调度器配置'
+        description: '📉 学习率变化策略配置。'
       }
     ],
     parameters: [
@@ -1015,7 +1432,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'config',
         name: 'Config',
         type: 'any',
-        description: '损失函数配置'
+        description: '🎯 损失函数（优化目标）配置。'
       }
     ],
     parameters: [
@@ -1060,7 +1477,7 @@ export const nodeRegistry: Record<string, NodeDefinition> = {
         id: 'config',
         name: 'Config',
         type: 'any',
-        description: '训练配置'
+        description: '🚀 训练基础配置（Epochs, Batch Size等）。'
       }
     ],
     parameters: [

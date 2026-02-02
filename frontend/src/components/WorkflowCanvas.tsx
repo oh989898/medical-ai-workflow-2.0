@@ -17,7 +17,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { 
-  Download, Trash2, Undo, Redo, Code 
+  Download, Trash2, Undo, Redo, Code, Sparkles 
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -46,9 +46,9 @@ function ToolbarButton({
   variant?: 'default' | 'primary' | 'danger';
 }) {
   const variants = {
-    default: 'bg-white/80 hover:bg-white text-gray-700 border-gray-200/50 shadow-sm hover:shadow-md',
-    primary: 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-transparent shadow-lg shadow-blue-500/25',
-    danger: 'bg-red-50/80 hover:bg-red-50 text-red-600 border-red-200/50 hover:border-red-300'
+    default: 'bg-white/40 hover:bg-white/80 text-gray-700 border-gray-200/30',
+    primary: 'bg-blue-500/90 hover:bg-blue-600 text-white border-transparent shadow-lg shadow-blue-500/20',
+    danger: 'bg-red-50/50 hover:bg-red-100 text-red-600 border-red-200/30'
   };
 
   return (
@@ -56,13 +56,15 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200',
+        'group flex items-center justify-center gap-2 p-2 px-3 rounded-xl border text-sm font-medium transition-all duration-300',
         variants[variant],
-        disabled && 'opacity-50 cursor-not-allowed'
+        disabled && 'opacity-40 cursor-not-allowed'
       )}
     >
-      <Icon className="w-4 h-4" />
-      <span>{label}</span>
+      <Icon className="w-4 h-4 transition-transform group-hover:scale-110" />
+      <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-in-out whitespace-nowrap opacity-0 group-hover:opacity-100">
+        {label}
+      </span>
     </button>
   );
 }
@@ -172,8 +174,105 @@ function CanvasContent() {
     undo,
     redo,
     clearWorkflow,
-    generateCode
+    generateCode,
+    loadWorkflow
   } = useWorkflowStore();
+
+  const loadClassificationTemplate = () => {
+    const now = new Date().toISOString();
+    const template: any = {
+      id: 'template_classification',
+      name: '病理图像分类模板',
+      nodes: [
+        { id: 'n1', type: 'image_folder', position: { x: 50, y: 150 }, data: { parameters: { folder_path: '/path/to/data' } } },
+        { id: 'n2', type: 'resize', position: { x: 300, y: 150 }, data: { parameters: { size: 224 } } },
+        { id: 'n3', type: 'titan', position: { x: 550, y: 150 }, data: { parameters: { model_path: '/path/to/titan.pth' } } },
+        { id: 'n4', type: 'classifier', position: { x: 800, y: 150 }, data: { parameters: { num_classes: 2 } } },
+        { id: 'n5', type: 'training_config', position: { x: 50, y: 350 }, data: { parameters: { epochs: 50, batch_size: 32 } } }
+      ],
+      connections: [
+        { id: 'e1', source: 'n1', sourceOutput: 'images', target: 'n2', targetInput: 'input' },
+        { id: 'e2', source: 'n2', sourceOutput: 'output', target: 'n3', targetInput: 'input' },
+        { id: 'e3', source: 'n3', sourceOutput: 'features', target: 'n4', targetInput: 'features' }
+      ],
+      createdAt: now,
+      updatedAt: now
+    };
+    loadWorkflow(template);
+  };
+
+  const loadSegmentationTemplate = () => {
+    const now = new Date().toISOString();
+    const template: any = {
+      id: 'template_segmentation',
+      name: '图像分割模板',
+      nodes: [
+        { id: 'n1', type: 'segmentation_dataset', position: { x: 50, y: 150 }, data: { parameters: { images_path: '/path/to/images', masks_path: '/path/to/masks' } } },
+        { id: 'n2', type: 'resnet50', position: { x: 350, y: 150 }, data: { parameters: { pretrained: true } } },
+        { id: 'n3', type: 'segmentation_head', position: { x: 650, y: 150 }, data: { parameters: { num_classes: 2, decoder_type: 'unet' } } },
+        { id: 'n4', type: 'training_config', position: { x: 50, y: 350 }, data: { parameters: { epochs: 100, batch_size: 16 } } }
+      ],
+      connections: [
+        { id: 'e1', source: 'n1', sourceOutput: 'images', target: 'n2', targetInput: 'input' },
+        { id: 'e2', source: 'n2', sourceOutput: 'feature_map', target: 'n3', targetInput: 'features' },
+        { id: 'e3', source: 'n1', sourceOutput: 'masks', target: 'n3', targetInput: 'masks' }
+      ],
+      createdAt: now,
+      updatedAt: now
+    };
+    loadWorkflow(template);
+  };
+
+  const loadMultimodalTemplate = () => {
+    const now = new Date().toISOString();
+    const template: any = {
+      id: 'template_multimodal',
+      name: '多模态特征融合模板',
+      nodes: [
+        { id: 'n1', type: 'image_folder', position: { x: 50, y: 100 }, data: { parameters: { folder_path: '/path/to/images' } } },
+        { id: 'n2', type: 'resnet50', position: { x: 300, y: 100 }, data: { parameters: { pretrained: true } } },
+        { id: 'n3', type: 'clinical_csv', position: { x: 50, y: 300 }, data: { parameters: { csv_path: '/path/to/data.csv' } } },
+        { id: 'n4', type: 'gated_fusion', position: { x: 550, y: 200 }, data: { parameters: { gate_type: 'sigmoid' } } },
+        { id: 'n5', type: 'classifier', position: { x: 800, y: 200 }, data: { parameters: { num_classes: 2 } } },
+        { id: 'n6', type: 'training_config', position: { x: 50, y: 450 }, data: { parameters: { epochs: 100, batch_size: 32 } } }
+      ],
+      connections: [
+        { id: 'e1', source: 'n1', sourceOutput: 'images', target: 'n2', targetInput: 'input' },
+        { id: 'e2', source: 'n2', sourceOutput: 'features', target: 'n4', targetInput: 'input1' },
+        { id: 'e3', source: 'n3', sourceOutput: 'features', target: 'n4', targetInput: 'input2' },
+        { id: 'e4', source: 'n4', sourceOutput: 'output', target: 'n5', targetInput: 'features' }
+      ],
+      createdAt: now,
+      updatedAt: now
+    };
+    loadWorkflow(template);
+  };
+
+  const loadVisionLanguageTemplate = () => {
+    const now = new Date().toISOString();
+    const template: any = {
+      id: 'template_vl',
+      name: '图文多模态模板 (CLIP/BERT)',
+      nodes: [
+        { id: 'n1', type: 'image_folder', position: { x: 50, y: 50 }, data: { parameters: { folder_path: '/path/to/images' } } },
+        { id: 'n2', type: 'medical_report', position: { x: 50, y: 250 }, data: { parameters: { csv_path: '/path/to/reports.csv', text_column: 'report' } } },
+        { id: 'n3', type: 'clip', position: { x: 350, y: 150 }, data: { parameters: { model_variant: 'openai/clip-vit-base-patch32' } } },
+        { id: 'n4', type: 'gated_fusion', position: { x: 600, y: 150 }, data: { parameters: { gate_type: 'sigmoid' } } },
+        { id: 'n5', type: 'classifier', position: { x: 850, y: 150 }, data: { parameters: { num_classes: 2 } } },
+        { id: 'n6', type: 'training_config', position: { x: 50, y: 450 }, data: { parameters: { epochs: 100, batch_size: 32 } } }
+      ],
+      connections: [
+        { id: 'e1', source: 'n1', sourceOutput: 'images', target: 'n3', targetInput: 'image' },
+        { id: 'e2', source: 'n2', sourceOutput: 'text', target: 'n3', targetInput: 'text' },
+        { id: 'e3', source: 'n3', sourceOutput: 'image_features', target: 'n4', targetInput: 'input1' },
+        { id: 'e4', source: 'n3', sourceOutput: 'text_features', target: 'n4', targetInput: 'input2' },
+        { id: 'e5', source: 'n4', sourceOutput: 'output', target: 'n5', targetInput: 'features' }
+      ],
+      createdAt: now,
+      updatedAt: now
+    };
+    loadWorkflow(template);
+  };
 
   const [reactFlowNodes, setReactFlowNodes, onNodesChange] = useNodesState(nodes);
   const [reactFlowEdges, setReactFlowEdges, onEdgesChange] = useEdgesState(edges);
@@ -330,31 +429,66 @@ function CanvasContent() {
           />
           
           {/* 顶部工具栏 - Apple 风格玻璃态 */}
-          <Panel position="top-center" className="m-4">
-            <div className="flex items-center gap-2 glass-panel px-4 py-3 rounded-2xl shadow-xl shadow-black/5">
-              <ToolbarButton
-                onClick={undo}
-                icon={Undo}
-                label="撤销"
-              />
-              <ToolbarButton
-                onClick={redo}
-                icon={Redo}
-                label="重做"
-              />
-              <div className="w-px h-8 bg-gray-200/60 mx-1" />
-              <ToolbarButton
-                onClick={clearWorkflow}
-                icon={Trash2}
-                label="清空"
-                variant="danger"
-              />
-              <ToolbarButton
-                onClick={handleGenerateCode}
-                icon={Code}
-                label="生成代码"
-                variant="primary"
-              />
+          <Panel position="top-center" className="m-2">
+            <div className="flex items-center gap-1.5 glass-panel p-1.5 rounded-2xl shadow-2xl shadow-black/10">
+              <div className="flex items-center gap-1 bg-gray-900/5 p-1 rounded-xl">
+                <ToolbarButton
+                  onClick={loadClassificationTemplate}
+                  icon={Sparkles}
+                  label="分类模板"
+                  variant="default"
+                />
+                <ToolbarButton
+                  onClick={loadSegmentationTemplate}
+                  icon={Sparkles}
+                  label="分割模板"
+                  variant="default"
+                />
+                <ToolbarButton
+                  onClick={loadMultimodalTemplate}
+                  icon={Sparkles}
+                  label="多模态模板"
+                  variant="default"
+                />
+                <ToolbarButton
+                  onClick={loadVisionLanguageTemplate}
+                  icon={Sparkles}
+                  label="图文模板"
+                  variant="default"
+                />
+              </div>
+              
+              <div className="w-px h-6 bg-gray-300/50 mx-1" />
+              
+              <div className="flex items-center gap-1">
+                <ToolbarButton
+                  onClick={undo}
+                  icon={Undo}
+                  label="撤销"
+                />
+                <ToolbarButton
+                  onClick={redo}
+                  icon={Redo}
+                  label="重做"
+                />
+              </div>
+
+              <div className="w-px h-6 bg-gray-300/50 mx-1" />
+              
+              <div className="flex items-center gap-1">
+                <ToolbarButton
+                  onClick={clearWorkflow}
+                  icon={Trash2}
+                  label="清空"
+                  variant="danger"
+                />
+                <ToolbarButton
+                  onClick={handleGenerateCode}
+                  icon={Code}
+                  label="生成代码"
+                  variant="primary"
+                />
+              </div>
             </div>
           </Panel>
         </ReactFlow>

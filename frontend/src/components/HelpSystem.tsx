@@ -14,13 +14,87 @@ function cn(...inputs: ClassValue[]) {
 
 // 使用指南数据
 const usageGuide = {
+  quickstart: {
+    title: '新手村 (3分钟上手)',
+    icon: Lightbulb,
+    content: `
+## 核心概念：Features vs Feature Map
+
+### 1. Spatial Feature Map (空间特征图)
+- **形象比喻**：带有标记的“增强照片”。
+- **特点**：保留了物体的**位置信息**（知道病灶在图中的哪个坐标）。
+- **用途**：主要用于**分割任务**（指哪打哪）。
+- **连线提示**：从编码器的 \`Spatial Feature Map\` 端口连出。
+
+### 2. Global Features (全局特征/嵌入)
+- **形象比喻**：一份精简的“体检结论”。
+- **特点**：总结了整张图的**核心含义**（语义信息），但丢失了具体位置。
+- **用途**：主要用于**分类任务**、**生存分析**、**相似检索**。
+- **连线提示**：从编码器的 \`Global Features\` 端口连出。
+
+---
+
+### 常见连接误区
+- ❌ **错误**：将 \`Global Features\` 连入 \`Segmentation Head\`。
+- ✅ **正确**：分割任务必须使用 \`Spatial Feature Map\`，因为模型需要知道具体的空间轮廓。
+
+---
+
+## 🚀 3分钟构建你的第一个AI工作流
+
+如果你是第一次使用，请跟随以下“傻瓜式”步骤：
+
+### 第一步：请出“原材料” (数据输入)
+在左侧找到**绿色**的节点，拖出一个 **[Image Folder]** 或 **[Pathology WSI]**。这就是你要训练的医学图像。
+
+### 第二步：给数据“洗个澡” (预处理)
+在左侧找到**橙色**的节点，拖出一个 **[Resize]**。把第一步节点的右边圆点连到它的左边圆点。
+*💡 技巧：这能确保所有图片大小一致。*
+
+### 第三步：换个“聪明脑子” (特征编码)
+在左侧找到**蓝色**的节点，拖出一个 **[ResNet50]** 或 **[TITAN]**。把它连在预处理节点后面。
+*💡 解释：这是AI的灵魂，它负责把图片看懂。*
+
+### 第四步：下达“任务指令” (下游任务)
+在左侧找到**红色**的节点，拖出一个 **[Classifier]** (分类器)。连上！
+*💡 解释：告诉AI你要做分类（比如看这图是有病还是没病）。*
+
+### 第五步：告诉它“怎么学习” (训练配置)
+在左侧找到**灰色**的节点，拖出一个 **[Training Config]**。
+*💡 解释：不用连线，放着就行。它会告诉AI要学多少轮。*
+
+### 第六步：见证奇迹 (生成代码)
+点击顶部的 **“生成代码”** 按钮。恭喜！你已经完成了一个深度学习项目的架构设计。
+
+---
+
+## 💡 常见“傻瓜式”配方 (可以直接照抄)
+
+### 模式 A：病理图片分类 (最常用)
+- **[Pathology WSI]** → **[Resize]** → **[TITAN]** → **[Classifier]**
+- *适合场景：看这张切片是有癌症还是正常的。*
+
+### 模式 B：多模态预测 (进阶版)
+- **[Pathology WSI]** → **[TITAN]** ──┐
+- **[Clinical CSV]** → **[BERT]** ──┴→ **[Concat]** → **[Survival Head]**
+- *适合场景：结合图片和病历，预测病人的生存时间。*
+
+---
+**🌈 颜色小秘密：**
+- 🟢 **绿色** = 数据从哪来
+- 🟠 **橙色** = 数据变个样
+- 🔵 **蓝色** = AI提取特征
+- 🔴 **红色** = AI完成什么任务
+- ⚪ **灰色** = 训练时的各种参数
+    `
+  },
   overview: {
     title: '平台概述',
-    icon: Lightbulb,
+    icon: BookOpen,
     content: `
 ## 医学AI可视化工作流平台
 
-本平台是一个面向医学研究人员的低代码/无代码AI工作流构建工具，基于**表示学习范式**设计：
+本平台是一个面向医学研究人员的低代码AI工作流构建工具，旨在帮助您快速搭建和训练专业的医学AI模型。
 
 ### 核心流程
 \`\`\`
@@ -28,14 +102,80 @@ const usageGuide = {
 \`\`\`
 
 ### 适用场景
-- 病理图像分析（WSI全切片图像）
-- 临床数据挖掘
-- 多模态医学数据融合
-- 生存分析、疾病预测等任务
+- **病理图像分析**：处理超大尺寸的 WSI 全切片图像。
+- **图像分割**：精准定位病灶区域。
+- **临床数据挖掘**：结合电子病历（EMR）进行疾病预测。
+- **生存分析**：预测患者的生存风险和时间。
 
-### 两种使用模式
-1. **小白模式**：使用预设模板，拖拽式构建
-2. **专家模式**：完全自定义，精细控制每个参数
+### 我们的目标
+让医学专家专注于临床问题的定义，而将复杂的深度学习代码生成和架构设计交给 AI。
+    `
+  },
+  data_prep: {
+    title: '📁 数据准备规范',
+    icon: Folder,
+    content: `
+## 核心原则：数据决定模型上限
+
+在运行生成的代码前，你必须按照以下规范整理你的医学数据。
+
+### 1. 图像分类 (Image Folder)
+**组织形式：**
+\`\`\`
+dataset/
+├── train/
+│   ├── Normal/        (文件夹名为类别名)
+│   │   ├── img1.jpg
+│   └── Tumor/
+│       ├── img3.jpg
+└── val/ ...
+\`\`\`
+
+### 2. 图像分割 (Segmentation Dataset)
+**组织形式：**
+\`\`\`
+dataset/
+├── images/            (原始图片)
+│   ├── patient_01.jpg
+│   └── patient_02.jpg
+└── masks/             (对应的标签掩码)
+    ├── patient_01.png
+    └── patient_02.png
+\`\`\`
+*💡 注意：images 和 masks 文件夹下的文件名必须完全一致。*
+
+### 3. 病理全切片 (Pathology WSI)
+**组织形式：**
+- 准备一个包含所有 WSI 文件的文件夹（.svs, .ndpi 等）。
+- 提供一个 CSV 映射表，记录 \`slide_id\` 与 \`label\`。
+
+### 4. 临床 CSV 数据 (Clinical CSV)
+**规范要求：**
+- **CSV 编码**：统一使用 UTF-8。
+- **ID列**：确保有一列唯一的患者/样本 ID。
+- **特征列**：用于输入的数值或分类指标。
+
+### 5. 无标注自动分割 (SAM Segmentor)
+**使用 SAM (Segment Anything Model)：**
+- **无需标注**：如果您没有 Mask 标签，可以使用 SAM 节点进行自动分割。
+- **工作原理**：利用 Meta 开源的 SAM 大模型，通过自动采样点生成全图分割掩码。
+- **配置建议**：
+    - 图像较复杂时，调高“点密度”参数。
+    - 生成的代码会自动处理模型权重的下载与加载。
+
+### 6. 多模态特征融合 (Feature Fusion)
+**医学 AI 的核心：**
+- **拼接融合 (Concatenate)**：最简单直接，将图像特征和临床特征连在一起。
+- **门控融合 (Gated Fusion)**：**推荐！** 它能自动学习“图像”和“临床”哪个更重要。如果某位患者的图片特征不明显，它会自动加大临床数据的权重。
+- **交叉注意力 (Cross Attention)**：让图像去“询问”临床数据，提取两者相关的关键特征。
+
+---
+
+## 💡 角色定位
+- **数据**是“原材料”。
+- **工作流**是“加工图纸”。
+- **生成的代码**是“自动化工厂”。
+如果没有按照规范摆放“原材料”，工厂将无法正常运转。
     `
   },
   workflow: {
@@ -199,22 +339,55 @@ const usageGuide = {
 ---
 
 ## 示例 3：图像分割
-
+  
 ### 场景
 在病理图像中分割肿瘤区域
 
 ### 工作流
 \`\`\`
-[Image Folder] → [Resize] → [ResNet] → [Segmentation Head] → [Trainer]
-                   ↓
-            [Normalize]
+[Seg Dataset] → [ResNet] → [Seg Head]
+      ↓           (Feature)
+   (Masks) ──────────┘
 \`\`\`
 
 ### 说明
-1. 加载图像数据集
-2. 预处理：调整尺寸并标准化
-3. ResNet 作为编码器提取特征
-4. 分割头进行像素级分类
+1. **Seg Dataset**：同时提供原图和掩码。
+2. **ResNet**：提取高维特征图（Feature Map）。
+3. **Seg Head**：接收特征图和掩码进行像素级学习。
+
+## 示例 4：SAM 自动分割 (无需标注)
+  
+### 场景
+只有原始病理图片，需要自动提取细胞或组织轮廓。
+
+### 工作流
+\`\`\`
+[Image Folder] → [SAM Segmentor]
+\`\`\`
+
+### 说明
+1. **Image Folder**：提供原始图片路径。
+2. **SAM Segmentor**：选择模型规模（如 ViT-B），系统将全自动生成分割掩码并保存。
+
+## 示例 5：图文多模态诊断 (CLIP/BERT)
+  
+### 场景
+结合患者的 CT 图像和放射科医生的诊断报告文本，进行综合病情评估。
+
+### 工作流
+\`\`\`
+[Image Folder] ──→ [CLIP Visual] ──┐
+                                   ↓
+                             [Gated Fusion] ──→ [Classifier]
+                                   ↑
+[Medical Report] ─→ [CLIP Text/BERT] ┘
+\`\`\`
+
+### 说明
+1. **Medical Report**：准备一个 CSV，第一列是患者 ID，第二列是报告文本。
+2. **CLIP**：这是一个“双塔”模型，能同时处理图片和文字，并将它们对齐。
+3. **BERT**：如果您只想处理文本特征，可以使用 BERT 节点。
+4. **提示**：生成的代码会自动调用 Hugging Face 的 Tokenizer 来处理文字，无需您手动切词。
     `
   },
   tips: {
@@ -383,7 +556,7 @@ interface HelpSystemProps {
 }
 
 export function HelpSystem({ isOpen, onClose }: HelpSystemProps) {
-  const [activeSection, setActiveSection] = useState<string>('overview');
+  const [activeSection, setActiveSection] = useState<string>('quickstart');
   const [showCategoryGuide, setShowCategoryGuide] = useState<string | null>(null);
 
   if (!isOpen) return null;

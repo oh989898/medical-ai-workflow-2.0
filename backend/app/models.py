@@ -112,6 +112,8 @@ class CodeGenerationResult(BaseModel):
     main_py: str
     model_py: str
     dataset_py: str
+    utils_py: str
+    setup_check_py: str
     config_yaml: str
     requirements_txt: str
     readme_md: str

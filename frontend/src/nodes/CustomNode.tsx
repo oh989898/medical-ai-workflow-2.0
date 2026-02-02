@@ -4,7 +4,7 @@ import {
   Folder, Microscope, Table, Maximize, Sliders, Palette, Shuffle,
   Layers, Grid3x3, Dna, Eye, Type, Combine, GitMerge, Focus,
   Tags, Activity, LayoutGrid, Settings, TrendingDown, Target, SlidersHorizontal,
-  AlertCircle, CheckCircle2, Link2, Unlink, AlertTriangle
+  AlertCircle, CheckCircle2, Link2, Unlink, AlertTriangle, Info
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -31,19 +31,20 @@ interface CustomNodeData {
 }
 
 // 连接状态类型
-type ConnectionStatus = 'connected' | 'disconnected' | 'partial' | 'error';
+type ConnectionStatus = 'connected' | 'disconnected' | 'partial';
 
 function CustomNode(props: NodeProps) {
   const { id, data, selected } = props;
   const nodeData = data as unknown as CustomNodeData;
   const { definition, parameters } = nodeData;
   const [showTooltip, setShowTooltip] = useState(false);
+  const [hoveredPort, setHoveredPort] = useState<{ id: string, description?: string } | null>(null);
   
   const Icon = definition.icon ? iconMap[definition.icon] : null;
   const color = categoryColors[definition.type];
   
   // 获取连接状态
-  const { getNodeConnections, nodes, edges } = useWorkflowStore();
+  const { getNodeConnections } = useWorkflowStore();
   const connections = getNodeConnections(id);
   
   // 检查输入端口连接状态
@@ -117,13 +118,6 @@ function CustomNode(props: NodeProps) {
           bgColor: 'bg-yellow-50',
           label: '部分连接'
         };
-      case 'error':
-        return {
-          icon: AlertCircle,
-          color: 'text-red-500',
-          bgColor: 'bg-red-50',
-          label: '连接错误'
-        };
     }
   };
   
@@ -140,8 +134,7 @@ function CustomNode(props: NodeProps) {
         'relative rounded-2xl border-2 bg-white/90 shadow-lg transition-all duration-200',
         selected ? 'ring-2 ring-offset-2' : '',
         connectionStatus === 'connected' ? 'border-green-400' : 
-        connectionStatus === 'partial' ? 'border-yellow-400' : 
-        connectionStatus === 'error' ? 'border-red-400' : 'border-gray-200'
+        connectionStatus === 'partial' ? 'border-yellow-400' : 'border-gray-200'
       )}
       style={{
         '--tw-ring-color': selected ? color : undefined,
@@ -179,9 +172,13 @@ function CustomNode(props: NodeProps) {
         
         {/* 配置状态指示器 */}
         {isConfigured ? (
-          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" title="配置完整" />
+          <div title="配置完整">
+            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+          </div>
         ) : (
-          <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" title="配置不完整" />
+          <div title="配置不完整">
+            <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+          </div>
         )}
       </div>
       
@@ -218,8 +215,10 @@ function CustomNode(props: NodeProps) {
             return (
               <div
                 key={input.id}
-                className="absolute left-0 flex items-center"
+                className="absolute left-0 flex items-center group"
                 style={{ top: `${12 + index * 28}px` }}
+                onMouseEnter={() => setHoveredPort({ id: input.id, description: input.description })}
+                onMouseLeave={() => setHoveredPort(null)}
               >
                 <Handle
                   type="target"
@@ -230,13 +229,18 @@ function CustomNode(props: NodeProps) {
                     connected ? "!bg-green-500 !border-green-500" : "!bg-white !border-gray-300"
                   )}
                 />
-                <span className={cn(
-                  "ml-4 text-xs whitespace-nowrap",
-                  connected ? "text-green-600 font-medium" : "text-gray-400"
-                )}>
-                  {input.name}
-                  {input.required && <span className="text-red-400 ml-0.5">*</span>}
-                </span>
+                <div className="flex items-center gap-1 ml-4">
+                  <span className={cn(
+                    "text-xs whitespace-nowrap",
+                    connected ? "text-green-600 font-medium" : "text-gray-400"
+                  )}>
+                    {input.name}
+                    {input.required && <span className="text-red-400 ml-0.5">*</span>}
+                  </span>
+                  {input.description && (
+                    <Info className="w-3 h-3 text-gray-300 group-hover:text-blue-400 transition-colors" />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -247,15 +251,22 @@ function CustomNode(props: NodeProps) {
             return (
               <div
                 key={output.id}
-                className="absolute right-0 flex items-center"
+                className="absolute right-0 flex items-center group"
                 style={{ top: `${12 + index * 28}px` }}
+                onMouseEnter={() => setHoveredPort({ id: output.id, description: output.description })}
+                onMouseLeave={() => setHoveredPort(null)}
               >
-                <span className={cn(
-                  "mr-4 text-xs whitespace-nowrap",
-                  hasConnection ? "text-green-600 font-medium" : "text-gray-400"
-                )}>
-                  {output.name}
-                </span>
+                <div className="flex items-center gap-1 mr-4">
+                  {output.description && (
+                    <Info className="w-3 h-3 text-gray-300 group-hover:text-blue-400 transition-colors" />
+                  )}
+                  <span className={cn(
+                    "text-xs whitespace-nowrap",
+                    hasConnection ? "text-green-600 font-medium" : "text-gray-400"
+                  )}>
+                    {output.name}
+                  </span>
+                </div>
                 <Handle
                   type="source"
                   position={Position.Right}
@@ -272,8 +283,22 @@ function CustomNode(props: NodeProps) {
         </div>
       )}
       
-      {/* Tooltip */}
-      {showTooltip && definition.tooltip && (
+      {/* Port Tooltip */}
+      {hoveredPort?.description && (
+        <div className="absolute left-full top-0 ml-4 p-3 bg-gray-900/95 text-white text-xs rounded-xl shadow-2xl z-[100] w-64 backdrop-blur-sm border border-white/10">
+          <div className="font-bold mb-1 flex items-center gap-1.5 text-blue-400">
+            <Info className="w-3.5 h-3.5" />
+            端口说明
+          </div>
+          <div className="leading-relaxed opacity-90 whitespace-pre-line">
+            {hoveredPort.description}
+          </div>
+          <div className="absolute right-full top-4 -translate-y-1/2 border-8 border-transparent border-r-gray-900/95" />
+        </div>
+      )}
+      
+      {/* Node Tooltip */}
+      {showTooltip && !hoveredPort && definition.tooltip && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-xl whitespace-nowrap z-50">
           {definition.tooltip}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />

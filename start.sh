@@ -7,6 +7,15 @@ echo "Medical AI Workflow 平台"
 echo "=========================================="
 echo ""
 
+# 尝试自动配置Node.js环境
+if ! command -v npm &> /dev/null; then
+    # 检查是否存在预设的conda环境
+    if [ -d "/Users/caitian/opt/anaconda3/envs/medical-ai-node/bin" ]; then
+        export PATH="/Users/caitian/opt/anaconda3/envs/medical-ai-node/bin:$PATH"
+        echo "已自动加载 Node.js 环境 (medical-ai-node)"
+    fi
+fi
+
 # 检查是否提供了参数
 if [ "$1" = "backend" ]; then
     echo "启动后端服务..."
@@ -31,6 +40,13 @@ if [ "$1" = "backend" ]; then
     
 elif [ "$1" = "frontend" ]; then
     echo "启动前端服务..."
+    
+    # 检查npm是否存在
+    if ! command -v npm &> /dev/null; then
+        echo "错误: 未找到 npm 命令。请确保已安装 Node.js。"
+        exit 1
+    fi
+
     cd frontend
     
     # 检查node_modules
@@ -45,6 +61,12 @@ elif [ "$1" = "frontend" ]; then
     
 elif [ "$1" = "all" ]; then
     echo "同时启动前后端服务..."
+    
+    # 检查npm
+    if ! command -v npm &> /dev/null; then
+        echo "错误: 未找到 npm 命令。无法启动前端。请确保已安装 Node.js。"
+        exit 1
+    fi
     
     # 启动后端（后台）
     cd backend

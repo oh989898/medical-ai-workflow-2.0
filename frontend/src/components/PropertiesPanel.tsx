@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { X, ExternalLink, Info, AlertCircle, ChevronRight } from 'lucide-react';
+import { X, ExternalLink, Info, AlertCircle, ChevronRight, HelpCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { NodeDefinition, Parameter, ParameterType } from '@/types/nodes';
+import type { NodeDefinition, Parameter } from '@/types/nodes';
 import { useWorkflowStore } from '@/stores/workflowStore';
 import { categoryLabels, categoryColors } from '@/types/nodes';
 
@@ -129,7 +129,9 @@ function ParameterInput({
                 input.onchange = (e) => {
                   const file = (e.target as HTMLInputElement).files?.[0];
                   if (file) {
-                    onChange(file.path || file.name);
+                    // 在浏览器环境中无法获取文件的完整绝对路径，这里仅作为演示
+                    // 实际使用时用户需要手动输入服务器上的绝对路径
+                    onChange(file.name);
                   }
                 };
                 input.click();
@@ -165,12 +167,13 @@ function ParameterInput({
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
-            <Info className="w-4 h-4 text-gray-400 cursor-help" />
+            <Info className="w-4 h-4 text-gray-400 cursor-help hover:text-blue-500 transition-colors" />
             {showTooltip && (
-              <div className="absolute right-0 bottom-full mb-2 w-56 p-3 bg-gray-900/95 backdrop-blur-sm 
-                              text-white text-xs rounded-xl z-50 shadow-xl">
-                {param.description}
-                <div className="absolute top-full right-3 border-8 border-transparent border-t-gray-900/95" />
+              <div className="absolute right-0 bottom-full mb-2 w-56 p-3 
+                              bg-white/95 backdrop-blur-xl border border-gray-200/50 
+                              text-gray-600 text-xs rounded-2xl z-50 shadow-2xl shadow-black/10 animate-in">
+                <p className="font-medium leading-relaxed">{param.description}</p>
+                <div className="absolute top-full right-3 border-8 border-transparent border-t-white/95" />
               </div>
             )}
           </div>
@@ -204,12 +207,15 @@ export function PropertiesPanel() {
     );
   }
 
-  const { definition, parameters } = selectedNode.data;
+  const { definition, parameters } = selectedNode.data as { 
+    definition: NodeDefinition; 
+    parameters: Record<string, any>; 
+  };
   const color = categoryColors[definition.type];
 
   // 分离基础参数和高级参数
-  const basicParams = definition.parameters.filter((p) => !p.advanced);
-  const advancedParams = definition.parameters.filter((p) => p.advanced);
+  const basicParams = definition.parameters.filter((p: Parameter) => !p.advanced);
+  const advancedParams = definition.parameters.filter((p: Parameter) => p.advanced);
 
   return (
     <div className="w-80 h-full flex flex-col bg-transparent">
@@ -221,7 +227,7 @@ export function PropertiesPanel() {
               className="w-3 h-3 rounded-full ring-2 ring-offset-2"
               style={{ 
                 backgroundColor: color,
-                ringColor: `${color}40`
+                boxShadow: `0 0 0 2px ${color}40`
               }}
             />
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -230,13 +236,79 @@ export function PropertiesPanel() {
           </div>
           <button
             onClick={() => setSelectedNode(null)}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
           >
-            <X className="w-4 h-4 text-gray-400" />
+            <X className="w-4 h-4" />
           </button>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">{definition.name}</h2>
+        <h2 className="text-xl font-bold text-gray-900 tracking-tight">{definition.name}</h2>
         <p className="text-sm text-gray-500 mt-2 leading-relaxed">{definition.description}</p>
+        
+        {/* 端口详细说明 */}
+        <div className="mt-4 space-y-3">
+          {definition.inputs.length > 0 && (
+            <div>
+              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">输入接口 (Inputs)</h4>
+              <div className="space-y-2">
+                {definition.inputs.map(input => (
+                  <div key={input.id} className="p-2.5 bg-gray-50/50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                      <span className="text-xs font-bold text-gray-700">{input.name}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-normal">{input.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {definition.outputs.length > 0 && (
+            <div>
+              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">输出接口 (Outputs)</h4>
+              <div className="space-y-2">
+                {definition.outputs.map(output => (
+                  <div key={output.id} className="p-2.5 bg-gray-50/50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                      <span className="text-xs font-bold text-gray-700">{output.name}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-normal">{output.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 数据准备提示 - 针对所有关键节点 */}
+        {(definition.type === 'input' || definition.type === 'head' || definition.type === 'encoder') && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+            <div className="flex items-center gap-2 text-blue-700 mb-1.5">
+              <HelpCircle className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                💡 使用指南
+              </span>
+            </div>
+            <p className="text-xs text-blue-600/80 leading-relaxed whitespace-pre-line">
+              {/* 输入节点提示 */}
+              {definition.id === 'image_folder' && "• 数据准备：请确保图片按类别存放于子文件夹中（如 train/Normal/*.jpg）。"}
+              {definition.id === 'segmentation_dataset' && "• 数据准备：请分别提供原图文件夹和掩码文件夹，文件名需一一对应。"}
+              {definition.id === 'pathology_wsi' && "• 数据准备：请提供包含 .svs/.ndpi 等切片文件的目录，程序将自动切块。"}
+              {definition.id === 'clinical_csv' && "• 数据准备：请确保 CSV 包含 ID 列、特征列和标签列。"}
+              
+              {/* 编码器提示 */}
+              {definition.type === 'encoder' && "• 核心概念：本节点有两个输出。\n  - Global Features: 汇总特征，用于分类或生存分析。\n  - Spatial Feature Map: 空间特征图，仅用于分割任务。"}
+
+              {/* 任务头提示 */}
+              {definition.id === 'segmentation_head' && "• 连接建议：请连接编码器的 [Spatial Feature Map] 输出端口，以及数据集的 [Masks] 输出。"}
+              {definition.id === 'sam_segmentor' && "• 高级功能：连接 [Images] 端口即可实现全自动分割。点密度越高，分割越精细。"}
+              {definition.id === 'classifier' && "• 连接建议：请连接编码器的 [Global Features] 端口。"}
+              {definition.id === 'gated_fusion' && "• 连接建议：将图像特征连入 Modal 1，临床特征连入 Modal 2。系统将自动学习融合权重。"}
+              {definition.id === 'cross_attention' && "• 连接建议：Query 通常连入主模态（图像），Key/Value 连入辅助模态（临床/文本）。"}
+              {definition.id === 'survival_head' && "• 连接建议：适用于多模态融合后的特征输入。"}
+            </p>
+          </div>
+        )}
         
         {/* 论文链接 */}
         {definition.paperUrl && (
@@ -258,7 +330,7 @@ export function PropertiesPanel() {
         {/* 基础参数 */}
         <div className="mb-6">
           <h3 className="text-sm font-bold text-gray-900 mb-4 tracking-tight">基础设置</h3>
-          {basicParams.map((param) => (
+          {basicParams.map((param: Parameter) => (
             <ParameterInput
               key={param.id}
               param={param}
@@ -290,7 +362,7 @@ export function PropertiesPanel() {
             
             {showAdvanced && (
               <div className="animate-in">
-                {advancedParams.map((param) => (
+                {advancedParams.map((param: Parameter) => (
                   <ParameterInput
                     key={param.id}
                     param={param}
