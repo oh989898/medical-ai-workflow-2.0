@@ -5,9 +5,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 from typing import Dict, List
 import logging
+import os
 
 from .models import Workflow, CodeGenerationResult, CodeGenerationRequest, NodeDefinition
 from .topology import TopologyEngine
@@ -183,6 +185,12 @@ async def global_exception_handler(request, exc):
             "error": str(exc)
         }
     )
+
+
+# 挂载前端静态文件 (用于部署)
+static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../frontend/dist")
+if os.path.exists(static_path):
+    app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
 
 
 # 启动入口
